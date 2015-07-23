@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -I . -g -O0 -Wall -std=c99
-TARGETS = anonymous_read anonymous_write
+TARGETS = anonymous_read anonymous_write anonymous_read_stress
 
 all: $(TARGETS)
 
