@@ -65,6 +65,8 @@ struct hmm_buffer {
     void                        *mirror;
     unsigned long               npages;
     int                         fd;
+    uint64_t                    nsys_pages;
+    uint64_t                    nfaulted_sys_pages;
 };
 
 struct hmm_buffer *hmm_buffer_new_anonymous(struct hmm_ctx *ctx,

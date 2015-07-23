@@ -131,6 +131,10 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
         fprintf(stderr, "(EE:%4d) %d\n", __LINE__, ret);
         hmm_exit();
     }
+
+    buffer->nsys_pages = read.nsys_pages;
+    buffer->nfaulted_sys_pages = read.nfaulted_sys_pages;
+
     return 0;
 }
 
@@ -148,6 +152,10 @@ int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
         fprintf(stderr, "(EE:%4d) %d\n", __LINE__, ret);
         hmm_exit();
     }
+
+    buffer->nsys_pages = write.nsys_pages;
+    buffer->nfaulted_sys_pages = write.nfaulted_sys_pages;
+
     return 0;
 }
 
