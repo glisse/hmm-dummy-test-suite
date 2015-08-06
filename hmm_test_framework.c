@@ -117,6 +117,46 @@ struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
     return buffer;
 }
 
+struct hmm_buffer *hmm_buffer_new_file(struct hmm_ctx *ctx,
+                                       const char *name,
+                                       int fd,
+                                       unsigned long npages)
+{
+    struct hmm_buffer *buffer;
+
+    if (!npages) {
+        fprintf(stderr, "(EE) %s(%s).npages -> %ld\n", __func__, name, npages);
+        hmm_exit();
+    }
+
+    buffer = malloc(sizeof(*buffer));
+    if (buffer == NULL) {
+        fprintf(stderr, "(EE) %s(%s).malloc(struct)\n", __func__, name);
+        hmm_exit();
+    }
+
+    buffer->fd = fd;
+    buffer->name = name;
+    buffer->npages = npages;
+    buffer->mirror = malloc(npages << ctx->page_shift);
+    if (buffer->mirror == NULL) {
+        fprintf(stderr, "(EE) %s(%s).malloc(mirror)\n", __func__, name);
+        free(buffer);
+        hmm_exit();
+    }
+
+    buffer->ptr = mmap(0, npages << ctx->page_shift,
+                       PROT_READ | PROT_WRITE,
+                       MAP_SHARED, fd, 0);
+    if (buffer->ptr == MAP_FAILED) {
+        fprintf(stderr, "(EE) %s(%s).mmap(%ld)\n", __func__, name, npages);
+        free(buffer);
+        hmm_exit();
+    }
+
+    return buffer;
+}
+
 int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
 {
     struct hmm_dummy_read read;
@@ -166,10 +206,35 @@ void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     }
 
     munmap(buffer->ptr, buffer->npages << ctx->page_shift);
-    if (buffer->fd >= 0) {
-        close(buffer->fd);
-    }
     free(buffer);
+}
+
+int hmm_create_file(struct hmm_ctx *ctx, char *path, unsigned npages)
+{
+    unsigned long size = npages << ctx->page_shift;
+    unsigned i;
+    int fd;
+
+    for (i = 0; i < 999; ++i) {
+        sprintf(path, "/tmp/hmmtmp%d", i);
+        fd = open(path, O_CREAT | O_EXCL | O_RDWR, S_IWUSR | S_IRUSR);
+        if (fd >= 0) {
+            int r;
+
+            do {
+                r = truncate(path, size);
+            } while (r == -1 && errno == EINTR);
+            if (!r) {
+                return fd;
+            }
+            fprintf(stderr, "(EE:%4d) truncate failed for %ld bytes (%d)\n",
+                    __LINE__, size, errno);
+            close(fd);
+            unlink(path);
+            return -1;
+        }
+    }
+    return -1;
 }
 
 int main(int argc, const char *argv[])

@@ -72,6 +72,10 @@ struct hmm_buffer {
 struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
                                        const char *name,
                                        unsigned long npages);
+struct hmm_buffer *hmm_buffer_new_file(struct hmm_ctx *ctx,
+                                       const char *name,
+                                       int fd,
+                                       unsigned long npages);
 int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
@@ -83,5 +87,8 @@ static inline unsigned long hmm_buffer_nbytes(struct hmm_ctx *ctx,
 }
 
 #define HMM_BUFFER_NEW_ANON(r, n) (r)=hmm_buffer_new_anon(ctx, #r, n)
+#define HMM_BUFFER_NEW_FILE(r, f, n) (r)=hmm_buffer_new_file(ctx, #r, f, n)
+
+int hmm_create_file(struct hmm_ctx *ctx, char *path, unsigned npages);
 
 #endif /* HMM_TEST_FRAMEWORK_H */

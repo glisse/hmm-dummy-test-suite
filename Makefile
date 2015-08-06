@@ -1,6 +1,6 @@
 CC = gcc
 CFLAGS = -I . -g -O0 -Wall -std=c99
-TARGETS = sanity_anonr sanity_anonw stress_anonr
+TARGETS = sanity_anonr sanity_anonw stress_anonr sanity_file001
 
 all: $(TARGETS)
 
