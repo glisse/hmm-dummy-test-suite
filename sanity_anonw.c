@@ -27,7 +27,7 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     unsigned long i, size;
     int *ptr;
 
-    HMM_BUFFER_NEW_ANONYMOUS(buffer, 1024);
+    HMM_BUFFER_NEW_ANON(buffer, 1024);
     size = hmm_buffer_nbytes(ctx, buffer);
 
     /* Initialize write buffer a memory. */

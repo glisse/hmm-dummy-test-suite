@@ -77,9 +77,9 @@ void hmm_ctx_fini(struct hmm_ctx *ctx)
     ctx->fd = -1;
 }
 
-struct hmm_buffer *hmm_buffer_new_anonymous(struct hmm_ctx *ctx,
-                                            const char *name,
-                                            unsigned long npages)
+struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
+                                       const char *name,
+                                       unsigned long npages)
 {
     struct hmm_buffer *buffer;
 

@@ -45,7 +45,7 @@ retry:
         int *ptr;
 
         printf("\r(..) Allocating buffers[%ld]", j);
-        HMM_BUFFER_NEW_ANONYMOUS(buffers[j], BUFFER_NPAGES);
+        HMM_BUFFER_NEW_ANON(buffers[j], BUFFER_NPAGES);
         size = hmm_buffer_nbytes(ctx, buffers[j]);
 
         /* Initialize buffer. */

@@ -69,9 +69,9 @@ struct hmm_buffer {
     uint64_t                    nfaulted_sys_pages;
 };
 
-struct hmm_buffer *hmm_buffer_new_anonymous(struct hmm_ctx *ctx,
-                                            const char *name,
-                                            unsigned long npages);
+struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
+                                       const char *name,
+                                       unsigned long npages);
 int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
@@ -82,6 +82,6 @@ static inline unsigned long hmm_buffer_nbytes(struct hmm_ctx *ctx,
     return buffer->npages << ctx->page_shift;
 }
 
-#define HMM_BUFFER_NEW_ANONYMOUS(r, n) (r)=hmm_buffer_new_anonymous(ctx, #r, n)
+#define HMM_BUFFER_NEW_ANON(r, n) (r)=hmm_buffer_new_anon(ctx, #r, n)
 
 #endif /* HMM_TEST_FRAMEWORK_H */
