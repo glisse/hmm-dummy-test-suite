@@ -20,6 +20,9 @@
 #include "hmm_test_framework.h"
 
 static struct hmm_test_result result;
+struct hmm_ctx _ctx = {
+    .test_name = "anon read test"
+};
 
 const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
 {

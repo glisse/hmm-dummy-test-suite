@@ -14,7 +14,7 @@
  * Authors: Jérôme Glisse <jglisse@redhat.com>
  */
 /*
- * This test case check that we can read an anonymous memory range through
+ * This test case check that we can read an file backed memory range through
  * the dummy device driver.
  */
 #include "hmm_test_framework.h"
@@ -22,6 +22,9 @@
 #define NPAGES  256
 
 static struct hmm_test_result result;
+struct hmm_ctx _ctx = {
+    .test_name = "file read test"
+};
 
 const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
 {

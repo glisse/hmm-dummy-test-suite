@@ -237,14 +237,15 @@ int hmm_create_file(struct hmm_ctx *ctx, char *path, unsigned npages)
     return -1;
 }
 
+extern struct hmm_ctx _ctx;
+
 int main(int argc, const char *argv[])
 {
     const struct hmm_test_result *result;
-    struct hmm_ctx ctx;
+    struct hmm_ctx *ctx = &_ctx;
     int ret;
 
-    ctx.test_name = argv[0];
-    ret = hmm_ctx_init(&ctx);
+    ret = hmm_ctx_init(ctx);
     if (ret) {
         goto out;
     }
@@ -253,11 +254,11 @@ int main(int argc, const char *argv[])
         goto out;
     }
 
-    result = hmm_test(&ctx);
+    result = hmm_test(ctx);
     ret = result ? result->ret : -1;
-    hmm_ctx_fini(&ctx);
+    hmm_ctx_fini(ctx);
 
 out:
-    printf("(%s) %s\n", ret ? "EE" : "OK", ctx.test_name);
+    printf("(%s)[%s] %s\n", ret ? "EE" : "OK", argv[0], ctx->test_name);
     return ret;
 }
