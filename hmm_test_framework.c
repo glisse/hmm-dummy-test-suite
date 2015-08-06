@@ -206,6 +206,7 @@ void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     }
 
     munmap(buffer->ptr, buffer->npages << ctx->page_shift);
+    free(buffer->mirror);
     free(buffer);
 }
 
