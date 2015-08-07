@@ -174,6 +174,8 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
 
     buffer->nsys_pages = read.nsys_pages;
     buffer->nfaulted_sys_pages = read.nfaulted_sys_pages;
+    buffer->ndev_pages = read.ndev_pages;
+    buffer->nfaulted_dev_pages = read.nfaulted_dev_pages;
 
     return 0;
 }
@@ -195,6 +197,27 @@ int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
 
     buffer->nsys_pages = write.nsys_pages;
     buffer->nfaulted_sys_pages = write.nfaulted_sys_pages;
+    buffer->ndev_pages = write.ndev_pages;
+    buffer->nfaulted_dev_pages = write.nfaulted_dev_pages;
+
+    return 0;
+}
+
+int hmm_buffer_mirror_migrate_to(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
+{
+    struct hmm_dummy_migrate migrate;
+    int ret;
+
+    migrate.address = (uintptr_t)buffer->ptr;
+    migrate.size = hmm_buffer_nbytes(ctx, buffer);
+
+    ret = ioctl(ctx->fd, HMM_DUMMY_MIGRATE_TO, &migrate);
+    if (ret) {
+        fprintf(stderr, "(EE:%4d) %d\n", __LINE__, ret);
+        hmm_exit();
+    }
+
+    buffer->nfaulted_dev_pages = migrate.nfaulted_dev_pages;
 
     return 0;
 }

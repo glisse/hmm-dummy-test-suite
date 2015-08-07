@@ -70,6 +70,8 @@ struct hmm_buffer {
     int                         fd;
     uint64_t                    nsys_pages;
     uint64_t                    nfaulted_sys_pages;
+    uint64_t                    ndev_pages;
+    uint64_t                    nfaulted_dev_pages;
 };
 
 struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
@@ -81,6 +83,7 @@ struct hmm_buffer *hmm_buffer_new_file(struct hmm_ctx *ctx,
                                        unsigned long npages);
 int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
+int hmm_buffer_mirror_migrate_to(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 
 static inline unsigned long hmm_buffer_nbytes(struct hmm_ctx *ctx,
