@@ -51,7 +51,11 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     }
 
     /* Read buffer to its mirror using dummy driver. */
-    hmm_buffer_mirror_read(ctx, buffer);
+    if (hmm_buffer_mirror_read(ctx, buffer)) {
+        result.ret = -1;
+        return &result;
+    }
+
     if (buffer->ndev_pages != NPAGES) {
         fprintf(stderr, "(EE:%4d) read %ld pages out of %d\n",
                 __LINE__, (long)buffer->ndev_pages, NPAGES);
@@ -62,7 +66,7 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     /* Check mirror value. */
     for (i = 0, ptr = buffer->mirror; i < size/sizeof(int); ++i) {
         if (ptr[i] != i) {
-            fprintf(stderr, "(EE:%4d) invalid value [%d] got %d expected %d\n",
+            fprintf(stderr, "(EE:%4d) invalid value [%ld] got %d expected %ld\n",
                     __LINE__, i, ptr[i], i);
             result.ret = -1;
             return &result;

@@ -168,8 +168,7 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
 
     ret = ioctl(ctx->fd, HMM_DUMMY_READ, &read);
     if (ret) {
-        fprintf(stderr, "(EE:%4d) %d\n", __LINE__, ret);
-        hmm_exit();
+        return ret;
     }
 
     buffer->nsys_pages = read.nsys_pages;
@@ -191,8 +190,7 @@ int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
 
     ret = ioctl(ctx->fd, HMM_DUMMY_WRITE, &write);
     if (ret) {
-        fprintf(stderr, "(EE:%4d) %d\n", __LINE__, ret);
-        hmm_exit();
+        return ret;
     }
 
     buffer->nsys_pages = write.nsys_pages;

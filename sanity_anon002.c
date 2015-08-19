@@ -39,7 +39,10 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     }
 
     /* Write buffer from its mirror using dummy driver. */
-    hmm_buffer_mirror_write(ctx, buffer);
+    if (hmm_buffer_mirror_write(ctx, buffer)) {
+        result.ret = -1;
+        return &result;
+    }
 
     /* Check buffer value. */
     for (i = 0, ptr = buffer->ptr; i < size/sizeof(int); ++i) {

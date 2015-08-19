@@ -51,7 +51,11 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     }
 
     /* Write buffer to its mirror using dummy driver. */
-    hmm_buffer_mirror_write(ctx, buffer);
+    if (hmm_buffer_mirror_write(ctx, buffer)) {
+        result.ret = -1;
+        return &result;
+    }
+
     if (buffer->ndev_pages != NPAGES) {
         fprintf(stderr, "(EE:%4d) write %ld pages out of %d\n",
                 __LINE__, (long)buffer->ndev_pages, NPAGES);
