@@ -38,6 +38,7 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 
 
 enum hmm_result {
@@ -84,6 +85,7 @@ struct hmm_buffer *hmm_buffer_new_file(struct hmm_ctx *ctx,
 int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mirror_migrate_to(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
+int hmm_buffer_mprotect(struct hmm_ctx *ctx, struct hmm_buffer *buffer, int prot);
 void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 
 static inline unsigned long hmm_buffer_nbytes(struct hmm_ctx *ctx,

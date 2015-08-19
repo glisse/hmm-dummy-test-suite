@@ -179,6 +179,14 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     return 0;
 }
 
+int hmm_buffer_mprotect(struct hmm_ctx *ctx, struct hmm_buffer *buffer, int prot)
+{
+    if (mprotect(buffer->ptr, hmm_buffer_nbytes(ctx, buffer), prot)) {
+        return -errno;
+    }
+    return 0;
+}
+
 int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
 {
     struct hmm_dummy_write write;
