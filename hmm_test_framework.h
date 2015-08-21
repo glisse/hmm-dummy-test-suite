@@ -99,4 +99,7 @@ static inline unsigned long hmm_buffer_nbytes(struct hmm_ctx *ctx,
 
 int hmm_create_file(struct hmm_ctx *ctx, char *path, unsigned npages);
 
+unsigned hmm_random(void);
+void hmm_nanosleep(unsigned n);
+
 #endif /* HMM_TEST_FRAMEWORK_H */

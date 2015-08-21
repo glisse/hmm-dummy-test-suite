@@ -15,6 +15,7 @@
  */
 #define _GNU_SOURCE
 
+#include <time.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -166,10 +167,13 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     read.size = hmm_buffer_nbytes(ctx, buffer);
     read.ptr = (uintptr_t)buffer->mirror;
 
-    ret = ioctl(ctx->fd, HMM_DUMMY_READ, &read);
-    if (ret) {
-        return ret;
-    }
+    do {
+        ret = ioctl(ctx->fd, HMM_DUMMY_READ, &read);
+        if (ret && errno != EINTR) {
+            return ret;
+        }
+if (errno == EINTR) printf("Hu\n");
+    } while (errno == EINTR);
 
     buffer->nsys_pages = read.nsys_pages;
     buffer->nfaulted_sys_pages = read.nfaulted_sys_pages;
@@ -196,10 +200,12 @@ int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     write.size = hmm_buffer_nbytes(ctx, buffer);
     write.ptr = (uintptr_t)buffer->mirror;
 
-    ret = ioctl(ctx->fd, HMM_DUMMY_WRITE, &write);
-    if (ret) {
-        return ret;
-    }
+    do {
+        ret = ioctl(ctx->fd, HMM_DUMMY_WRITE, &write);
+        if (ret && errno != EINTR) {
+            return ret;
+        }
+    } while (errno == EINTR);
 
     buffer->nsys_pages = write.nsys_pages;
     buffer->nfaulted_sys_pages = write.nfaulted_sys_pages;
@@ -265,6 +271,32 @@ int hmm_create_file(struct hmm_ctx *ctx, char *path, unsigned npages)
         }
     }
     return -1;
+}
+
+unsigned hmm_random(void)
+{
+    static int fd = -1;
+    unsigned r;
+
+    if (fd < 0) {
+        fd = open("/dev/urandom", O_RDONLY);
+        if (fd < 0) {
+            fprintf(stderr, "%s:%d failed to open /dev/urandom\n",
+                    __FILE__, __LINE__);
+            exit(-1);
+        }
+    }
+    read(fd, &r, sizeof(r));
+    return r;
+}
+
+void hmm_nanosleep(unsigned n)
+{
+    struct timespec t;
+
+    t.tv_sec = 0;
+    t.tv_nsec = n;
+    nanosleep(&t , NULL);
 }
 
 extern struct hmm_ctx _ctx;
