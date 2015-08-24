@@ -21,17 +21,13 @@
 #include "hmm_test_framework.h"
 #include <pthread.h>
 
-static struct hmm_test_result result;
-struct hmm_ctx _ctx = {
-    .test_name = "anon read access and munmap stress test"
-};
-
 #define NTIMES 1024
 #define BUFFER_NPAGES 128
 #define MAX_SLEEP_BEFORE_MUNMAP_NS 32000
 
 static struct hmm_buffer *_buffer = NULL;
 static unsigned long _c = -1;
+static int _ret = 0;
 
 void *access_buffer(void *p)
 {
@@ -51,8 +47,8 @@ void *access_buffer(void *p)
                 if (ptr[i] != i) {
                     fprintf(stderr, "%s:%d Read succeeded but with invalid "
                             "value [%ld] = %d\n", __FILE__, __LINE__, i, ptr[i]);
-                    result.ret = -1;
-                    return &result;
+                    _ret = -1;
+                    return NULL;
                 }
             }
         }
@@ -63,20 +59,18 @@ void *access_buffer(void *p)
     return NULL;
 }
 
-const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
+static int hmm_test(struct hmm_ctx *ctx)
 {
     pthread_t thread;
 
-    result.ret = 0;
 
     if (pthread_create(&thread, NULL, access_buffer, ctx)) {
         fprintf(stderr, "%s:%d Thread creation failed !\n",
                 __FILE__, __LINE__);
-        result.ret = -1;
-        return &result;
+        return -1;
     }
 
-    for (_c = 0; (_c < NTIMES) && !result.ret; ++_c) {
+    for (_c = 0; (_c < NTIMES) && !_ret; ++_c) {
         struct hmm_buffer *buffer;
         unsigned long i, size;
         int *ptr;
@@ -97,5 +91,26 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
 
     pthread_join(thread, NULL);
 
-    return &result;
+    return _ret;
+}
+
+int main(int argc, const char *argv[])
+{
+    struct hmm_ctx _ctx = {
+        .test_name = "anon read access and munmap stress test"
+    };
+    struct hmm_ctx *ctx = &_ctx;
+    int ret;
+
+    ret = hmm_ctx_init(ctx);
+    if (ret) {
+        goto out;
+    }
+
+    ret = hmm_test(ctx);
+    hmm_ctx_fini(ctx);
+
+out:
+    printf("(%s)[%s] %s\n", ret ? "EE" : "OK", argv[0], ctx->test_name);
+    return ret;
 }

@@ -41,15 +41,6 @@
 #include <sys/mman.h>
 
 
-enum hmm_result {
-    TEST_OK,
-    TEST_ERR,
-};
-
-struct hmm_test_result {
-    int                         ret;
-};
-
 struct hmm_ctx {
     const char                  *test_name;
     int                         fd;
@@ -59,8 +50,8 @@ struct hmm_ctx {
     unsigned long               page_mask;
 };
 
-/* This is the entry point for each test. */
-const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx);
+int hmm_ctx_init(struct hmm_ctx *ctx);
+void hmm_ctx_fini(struct hmm_ctx *ctx);
 
 
 struct hmm_buffer {

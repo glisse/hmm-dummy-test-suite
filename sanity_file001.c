@@ -19,25 +19,20 @@
  */
 #include "hmm_test_framework.h"
 
+
 #define NPAGES  256
 
-static struct hmm_test_result result;
-struct hmm_ctx _ctx = {
-    .test_name = "file read test"
-};
-
-const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
+static int hmm_test(struct hmm_ctx *ctx)
 {
     struct hmm_buffer *buffer;
     unsigned long i, size;
     char path[64] = {0};
-    int *ptr;
+    int *ptr, ret = 0;
     int fd;
 
     fd = hmm_create_file(ctx, path, NPAGES);
     if (fd < 0) {
-        result.ret = -1;
-        return &result;
+        return -1;
     }
 
     HMM_BUFFER_NEW_FILE(buffer, fd, NPAGES);
@@ -50,20 +45,40 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
 
     /* Read buffer to its mirror using dummy driver. */
     if (hmm_buffer_mirror_read(ctx, buffer)) {
-        result.ret = -1;
-        return &result;
+        ret = -1;
+        goto out;
     }
 
     /* Check mirror value. */
     for (i = 0, ptr = buffer->mirror; i < size/sizeof(int); ++i) {
         if (ptr[i] != i) {
-            result.ret = -1;
+            ret = -1;
             goto out;
         }
     }
 
-    result.ret = 0;
 out:
     unlink(path);
-    return &result;
+    return ret;
+}
+
+int main(int argc, const char *argv[])
+{
+    struct hmm_ctx _ctx = {
+        .test_name = "file read test"
+    };
+    struct hmm_ctx *ctx = &_ctx;
+    int ret;
+
+    ret = hmm_ctx_init(ctx);
+    if (ret) {
+        goto out;
+    }
+
+    ret = hmm_test(ctx);
+    hmm_ctx_fini(ctx);
+
+out:
+    printf("(%s)[%s] %s\n", ret ? "EE" : "OK", argv[0], ctx->test_name);
+    return ret;
 }

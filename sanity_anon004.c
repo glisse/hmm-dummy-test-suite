@@ -19,12 +19,8 @@
  */
 #include "hmm_test_framework.h"
 
-static struct hmm_test_result result;
-struct hmm_ctx _ctx = {
-    .test_name = "anon mprotect with PROT_NONE test"
-};
 
-const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
+static int hmm_test(struct hmm_ctx *ctx)
 {
     struct hmm_buffer *buffer;
     unsigned long i, size;
@@ -45,8 +41,7 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
 
     /* Protect buffer. */
     if (hmm_buffer_mprotect(ctx, buffer, PROT_NONE)) {
-        result.ret = -1;
-        return &result;
+        return -1;
     }
 
     /* Try to read, we expect an error so ignore it. */
@@ -54,8 +49,7 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     /* Check buffer value. */
     for (i = 0, ptr = buffer->mirror; i < size/sizeof(int); ++i) {
         if (ptr[i]) {
-            result.ret = -1;
-            return &result;
+            return -1;
         }
     }
 
@@ -65,16 +59,35 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     hmm_buffer_mirror_write(ctx, buffer);
     /* Unprotect buffer before checking value. */
     if (hmm_buffer_mprotect(ctx, buffer, PROT_READ)) {
-        result.ret = -1;
-        return &result;
+        return -1;
     }
     /* Check buffer value. */
     for (i = 0, ptr = buffer->ptr; i < size/sizeof(int); ++i) {
         if (ptr[i] != i) {
-            return &result;
+            return -1;
         }
     }
 
-    result.ret = 0;
-    return &result;
+    return 0;
+}
+
+int main(int argc, const char *argv[])
+{
+    struct hmm_ctx _ctx = {
+        .test_name = "anon mprotect with PROT_NONE test"
+    };
+    struct hmm_ctx *ctx = &_ctx;
+    int ret;
+
+    ret = hmm_ctx_init(ctx);
+    if (ret) {
+        goto out;
+    }
+
+    ret = hmm_test(ctx);
+    hmm_ctx_fini(ctx);
+
+out:
+    printf("(%s)[%s] %s\n", ret ? "EE" : "OK", argv[0], ctx->test_name);
+    return ret;
 }

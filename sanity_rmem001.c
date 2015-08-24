@@ -18,18 +18,14 @@
  */
 #include "hmm_test_framework.h"
 
+
 #define NPAGES  256
 
-static struct hmm_test_result result;
-struct hmm_ctx _ctx = {
-    .test_name = "anon migration test"
-};
-
-const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
+static int hmm_test(struct hmm_ctx *ctx)
 {
     struct hmm_buffer *buffer;
     unsigned long i, size;
-    int *ptr;
+    int *ptr, ret = 0;
 
     HMM_BUFFER_NEW_ANON(buffer, NPAGES);
     size = hmm_buffer_nbytes(ctx, buffer);
@@ -40,15 +36,35 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
     }
 
     /* Migrate buffer to remote memory. */
-    result.ret = 0;
     hmm_buffer_mirror_migrate_to(ctx, buffer);
     if (buffer->nfaulted_dev_pages != NPAGES) {
         fprintf(stderr, "(EE:%4d) migrated %ld pages out of %d\n",
                 __LINE__, (long)buffer->nfaulted_dev_pages, NPAGES);
-        result.ret = -1;
+        ret = -1;
     }
 
     hmm_buffer_free(ctx, buffer);
 
-    return &result;
+    return ret;
+}
+
+int main(int argc, const char *argv[])
+{
+    struct hmm_ctx _ctx = {
+        .test_name = "anon migration test"
+    };
+    struct hmm_ctx *ctx = &_ctx;
+    int ret;
+
+    ret = hmm_ctx_init(ctx);
+    if (ret) {
+        goto out;
+    }
+
+    ret = hmm_test(ctx);
+    hmm_ctx_fini(ctx);
+
+out:
+    printf("(%s)[%s] %s\n", ret ? "EE" : "OK", argv[0], ctx->test_name);
+    return ret;
 }

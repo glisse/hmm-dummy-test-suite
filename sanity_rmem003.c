@@ -21,27 +21,21 @@
 
 #define NPAGES  256
 
-static struct hmm_test_result result;
-struct hmm_ctx _ctx = {
-    .test_name = "anon migration write test"
-};
-
-const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
+static int hmm_test(struct hmm_ctx *ctx)
 {
     struct hmm_buffer *buffer;
     unsigned i, size;
-    int *ptr;
+    int *ptr, ret = 0;
 
     HMM_BUFFER_NEW_ANON(buffer, NPAGES);
     size = hmm_buffer_nbytes(ctx, buffer);
 
     /* Migrate buffer to remote memory. */
-    result.ret = 0;
     hmm_buffer_mirror_migrate_to(ctx, buffer);
     if (buffer->nfaulted_dev_pages != NPAGES) {
         fprintf(stderr, "(EE:%4d) migrated %ld pages out of %d\n",
                 __LINE__, (long)buffer->nfaulted_dev_pages, NPAGES);
-        result.ret = -1;
+        ret = -1;
         goto out;
     }
 
@@ -52,14 +46,14 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
 
     /* Write buffer to its mirror using dummy driver. */
     if (hmm_buffer_mirror_write(ctx, buffer)) {
-        result.ret = -1;
-        return &result;
+        ret = -1;
+        goto out;
     }
 
     if (buffer->ndev_pages != NPAGES) {
         fprintf(stderr, "(EE:%4d) write %ld pages out of %d\n",
                 __LINE__, (long)buffer->ndev_pages, NPAGES);
-        result.ret = -1;
+        ret = -1;
         goto out;
     }
 
@@ -68,7 +62,7 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
         if (ptr[i] != i) {
             fprintf(stderr, "(EE:%4d) invalid value [%d] got %d expected %d\n",
                     __LINE__, i, ptr[i], i);
-            result.ret = -1;
+            ret = -1;
             goto out;
         }
     }
@@ -76,5 +70,26 @@ const struct hmm_test_result *hmm_test(struct hmm_ctx *ctx)
 out:
     hmm_buffer_free(ctx, buffer);
 
-    return &result;
+    return ret;
+}
+
+int main(int argc, const char *argv[])
+{
+    struct hmm_ctx _ctx = {
+        .test_name = "anon migration write test"
+    };
+    struct hmm_ctx *ctx = &_ctx;
+    int ret;
+
+    ret = hmm_ctx_init(ctx);
+    if (ret) {
+        goto out;
+    }
+
+    ret = hmm_test(ctx);
+    hmm_ctx_fini(ctx);
+
+out:
+    printf("(%s)[%s] %s\n", ret ? "EE" : "OK", argv[0], ctx->test_name);
+    return ret;
 }

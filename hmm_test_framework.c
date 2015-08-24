@@ -55,9 +55,13 @@ static int hmm_dummy_ctx_register(struct hmm_ctx *ctx)
     return ret;
 }
 
-static int hmm_ctx_init(struct hmm_ctx *ctx)
+int hmm_ctx_init(struct hmm_ctx *ctx)
 {
     char pathname[32];
+
+    if (setjmp(_hmm_exit_env)) {
+        return -1;
+    }
 
     snprintf(pathname, sizeof(pathname), "/dev/hmm_dummy_device%d%d", 0, 0);
     ctx->fd = open(pathname, O_RDWR, 0);
@@ -172,7 +176,6 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
         if (ret && errno != EINTR) {
             return ret;
         }
-if (errno == EINTR) printf("Hu\n");
     } while (errno == EINTR);
 
     buffer->nsys_pages = read.nsys_pages;
@@ -297,30 +300,4 @@ void hmm_nanosleep(unsigned n)
     t.tv_sec = 0;
     t.tv_nsec = n;
     nanosleep(&t , NULL);
-}
-
-extern struct hmm_ctx _ctx;
-
-int main(int argc, const char *argv[])
-{
-    const struct hmm_test_result *result;
-    struct hmm_ctx *ctx = &_ctx;
-    int ret;
-
-    ret = hmm_ctx_init(ctx);
-    if (ret) {
-        goto out;
-    }
-    if (setjmp(_hmm_exit_env)) {
-        ret = -1;
-        goto out;
-    }
-
-    result = hmm_test(ctx);
-    ret = result ? result->ret : -1;
-    hmm_ctx_fini(ctx);
-
-out:
-    printf("(%s)[%s] %s\n", ret ? "EE" : "OK", argv[0], ctx->test_name);
-    return ret;
 }
