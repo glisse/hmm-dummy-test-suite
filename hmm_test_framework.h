@@ -45,9 +45,6 @@ struct hmm_ctx {
     const char                  *test_name;
     int                         fd;
     pid_t                       pid;
-    unsigned                    page_size;
-    unsigned                    page_shift;
-    unsigned long               page_mask;
 };
 
 int hmm_ctx_init(struct hmm_ctx *ctx);
@@ -66,29 +63,19 @@ struct hmm_buffer {
     uint64_t                    nfaulted_dev_pages;
 };
 
-struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
-                                       const char *name,
-                                       unsigned long npages);
-struct hmm_buffer *hmm_buffer_new_file(struct hmm_ctx *ctx,
-                                       const char *name,
-                                       int fd,
-                                       unsigned long npages);
+struct hmm_buffer *hmm_buffer_new_anon(const char *name, unsigned long nbytes);
+struct hmm_buffer *hmm_buffer_new_file(const char *name, int fd, unsigned long bytes);
 int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mirror_migrate_to(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
-int hmm_buffer_mprotect(struct hmm_ctx *ctx, struct hmm_buffer *buffer, int prot);
-void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
+int hmm_buffer_mprotect(struct hmm_buffer *buffer, int prot);
+void hmm_buffer_free(struct hmm_buffer *buffer);
+unsigned long hmm_buffer_nbytes(struct hmm_buffer *buffer);
 
-static inline unsigned long hmm_buffer_nbytes(struct hmm_ctx *ctx,
-                                              struct hmm_buffer *buffer)
-{
-    return buffer->npages << ctx->page_shift;
-}
+#define HMM_BUFFER_NEW_ANON(r, n) (r)=hmm_buffer_new_anon(#r, n)
+#define HMM_BUFFER_NEW_FILE(r, f, n) (r)=hmm_buffer_new_file(#r, f, n)
 
-#define HMM_BUFFER_NEW_ANON(r, n) (r)=hmm_buffer_new_anon(ctx, #r, n)
-#define HMM_BUFFER_NEW_FILE(r, f, n) (r)=hmm_buffer_new_file(ctx, #r, f, n)
-
-int hmm_create_file(struct hmm_ctx *ctx, char *path, unsigned npages);
+int hmm_create_file(char *path, unsigned long size);
 
 unsigned hmm_random(void);
 void hmm_nanosleep(unsigned n);

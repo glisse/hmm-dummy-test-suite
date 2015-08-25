@@ -19,7 +19,8 @@
  */
 #include "hmm_test_framework.h"
 
-#define NPAGES  256
+#define BUFFER_SIZE (256 << 12)
+
 
 static int hmm_test(struct hmm_ctx *ctx)
 {
@@ -27,14 +28,14 @@ static int hmm_test(struct hmm_ctx *ctx)
     unsigned i, size;
     int *ptr, ret = 0;
 
-    HMM_BUFFER_NEW_ANON(buffer, NPAGES);
-    size = hmm_buffer_nbytes(ctx, buffer);
+    HMM_BUFFER_NEW_ANON(buffer, BUFFER_SIZE);
+    size = hmm_buffer_nbytes(buffer);
 
     /* Migrate buffer to remote memory. */
     hmm_buffer_mirror_migrate_to(ctx, buffer);
-    if (buffer->nfaulted_dev_pages != NPAGES) {
-        fprintf(stderr, "(EE:%4d) migrated %ld pages out of %d\n",
-                __LINE__, (long)buffer->nfaulted_dev_pages, NPAGES);
+    if (buffer->nfaulted_dev_pages != buffer->npages) {
+        fprintf(stderr, "(EE:%4d) migrated %ld pages out of %ld\n",
+                __LINE__, (long)buffer->nfaulted_dev_pages, buffer->npages);
         ret = -1;
         goto out;
     }
@@ -50,9 +51,9 @@ static int hmm_test(struct hmm_ctx *ctx)
         goto out;
     }
 
-    if (buffer->ndev_pages != NPAGES) {
-        fprintf(stderr, "(EE:%4d) write %ld pages out of %d\n",
-                __LINE__, (long)buffer->ndev_pages, NPAGES);
+    if (buffer->ndev_pages != buffer->npages) {
+        fprintf(stderr, "(EE:%4d) write %ld pages out of %ld\n",
+                __LINE__, (long)buffer->ndev_pages, buffer->npages);
         ret = -1;
         goto out;
     }
@@ -68,7 +69,7 @@ static int hmm_test(struct hmm_ctx *ctx)
     }
 
 out:
-    hmm_buffer_free(ctx, buffer);
+    hmm_buffer_free(buffer);
 
     return ret;
 }

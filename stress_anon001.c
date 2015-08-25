@@ -19,9 +19,9 @@
  */
 #include "hmm_test_framework.h"
 
+static unsigned long BUFFER_SIZE = (512 << 12);
+#define NBUFFERS 512
 
-static unsigned long NBUFFERS = 512;
-static unsigned long BUFFER_NPAGES = 1024;
 
 static int hmm_test(struct hmm_ctx *ctx)
 {
@@ -43,8 +43,8 @@ retry:
         int *ptr;
 
         printf("\r(..) Allocating buffers[%ld]", j);
-        HMM_BUFFER_NEW_ANON(buffers[j], BUFFER_NPAGES);
-        size = hmm_buffer_nbytes(ctx, buffers[j]);
+        HMM_BUFFER_NEW_ANON(buffers[j], BUFFER_SIZE);
+        size = hmm_buffer_nbytes(buffers[j]);
 
         /* Initialize buffer. */
         for (i = 0, ptr = buffers[j]->ptr; i < size/sizeof(int); ++i) {
@@ -68,7 +68,7 @@ retry:
      * to refault.
      */
     for (j = 0, nrefaults = 0; j < NBUFFERS; ++j) {
-        unsigned long i, size = hmm_buffer_nbytes(ctx, buffers[j]);
+        unsigned long i, size = hmm_buffer_nbytes(buffers[j]);
         int *ptr;
 
         printf("\r(..) Re-checking buffers[%ld]", j);
@@ -86,18 +86,18 @@ retry:
     }
 
     for (j = 0; j < NBUFFERS; ++j) {
-        hmm_buffer_free(ctx, buffers[j]);
+        hmm_buffer_free(buffers[j]);
     }
 
-    if (nrefaults < BUFFER_NPAGES) {
+    if (nrefaults < (BUFFER_SIZE >> 12)) {
         /* We failed to exhaust memory retry again with bigger buffer. */
         printf("\r(..) Failed to exhaust memory (%ld)", nrefaults);
-        BUFFER_NPAGES *= 2;
+        BUFFER_SIZE *= 2;
         goto retry;
     }
 
     /* Make sure we clear the line. */
-    printf("\r                              ");
+    printf("\r                              \r");
 
     return 0;
 }

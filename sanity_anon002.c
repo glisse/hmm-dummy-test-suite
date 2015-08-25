@@ -19,6 +19,8 @@
  */
 #include "hmm_test_framework.h"
 
+#define BUFFER_SIZE (1024 << 12)
+
 
 static int hmm_test(struct hmm_ctx *ctx)
 {
@@ -26,8 +28,8 @@ static int hmm_test(struct hmm_ctx *ctx)
     unsigned long i, size;
     int *ptr;
 
-    HMM_BUFFER_NEW_ANON(buffer, 1024);
-    size = hmm_buffer_nbytes(ctx, buffer);
+    HMM_BUFFER_NEW_ANON(buffer, BUFFER_SIZE);
+    size = hmm_buffer_nbytes(buffer);
 
     /* Initialize write buffer a memory. */
     for (i = 0, ptr = buffer->mirror; i < size/sizeof(int); ++i) {

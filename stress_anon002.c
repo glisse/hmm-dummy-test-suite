@@ -19,9 +19,9 @@
  */
 #include "hmm_test_framework.h"
 
+#define BUFFER_SIZE (1024 << 12)
+#define NTIMES 512
 
-static unsigned long NTIMES = 512;
-static unsigned long NPAGES = 1024;
 
 static int hmm_test(struct hmm_ctx *ctx)
 {
@@ -30,8 +30,8 @@ static int hmm_test(struct hmm_ctx *ctx)
     int *ptr;
 
     for (c = 0; c < NTIMES; ++c) {
-        HMM_BUFFER_NEW_ANON(buffer, NPAGES);
-        size = hmm_buffer_nbytes(ctx, buffer);
+        HMM_BUFFER_NEW_ANON(buffer, BUFFER_SIZE);
+        size = hmm_buffer_nbytes(buffer);
 
         /* Initialize buffer. */
         for (i = 0, ptr = buffer->ptr; i < size/sizeof(int); ++i) {
@@ -48,7 +48,7 @@ static int hmm_test(struct hmm_ctx *ctx)
             }
         }
 
-        hmm_buffer_free(ctx, buffer);
+        hmm_buffer_free(buffer);
     }
 
     return 0;

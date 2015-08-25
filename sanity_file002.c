@@ -19,8 +19,8 @@
  */
 #include "hmm_test_framework.h"
 
+#define BUFFER_SIZE (256 << 12)
 
-#define NPAGES  256
 
 static int hmm_test(struct hmm_ctx *ctx)
 {
@@ -30,13 +30,13 @@ static int hmm_test(struct hmm_ctx *ctx)
     int *ptr, ret = 0;
     int fd;
 
-    fd = hmm_create_file(ctx, path, NPAGES);
+    fd = hmm_create_file(path, BUFFER_SIZE);
     if (fd < 0) {
         return -1;
     }
 
-    HMM_BUFFER_NEW_FILE(buffer, fd, NPAGES);
-    size = hmm_buffer_nbytes(ctx, buffer);
+    HMM_BUFFER_NEW_FILE(buffer, fd, BUFFER_SIZE);
+    size = hmm_buffer_nbytes(buffer);
 
     /* Initialize write buffer a memory. */
     for (i = 0, ptr = buffer->mirror; i < size/sizeof(int); ++i) {
@@ -56,7 +56,7 @@ static int hmm_test(struct hmm_ctx *ctx)
             goto out;
         }
     }
-    hmm_buffer_free(ctx, buffer);
+    hmm_buffer_free(buffer);
 
     /* Close the file and check that it get written to disk. */
     close(fd);
@@ -65,8 +65,8 @@ static int hmm_test(struct hmm_ctx *ctx)
         ret = -1;
         goto out;
     }
-    HMM_BUFFER_NEW_FILE(buffer, fd, NPAGES);
-    size = hmm_buffer_nbytes(ctx, buffer);
+    HMM_BUFFER_NEW_FILE(buffer, fd, BUFFER_SIZE);
+    size = hmm_buffer_nbytes(buffer);
     /* Check buffer value. */
     for (i = 0, ptr = buffer->ptr; i < size/sizeof(int); ++i) {
         if (ptr[i] != i) {
@@ -74,7 +74,7 @@ static int hmm_test(struct hmm_ctx *ctx)
             goto out;
         }
     }
-    hmm_buffer_free(ctx, buffer);
+    hmm_buffer_free(buffer);
 
 out:
     unlink(path);

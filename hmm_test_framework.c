@@ -35,16 +35,38 @@
 
 #define MAX_RETRY 16
 
+#define ALIGN(x, a) (((x) + (a - 1)) & (~((a) - 1)))
+
+static int _hmm_exit_ok = 0;
 static jmp_buf _hmm_exit_env;
+static unsigned page_size = 0;
+static unsigned page_shift;
+static unsigned long page_mask;
+
+
+static inline void hmm_init_page_info(void)
+{
+    if (page_size) {
+        return;
+    }
+    page_size = sysconf(_SC_PAGE_SIZE);
+    page_shift = ffs(page_size) - 1;
+    page_mask = ~((unsigned long)(page_size - 1));
+}
 
 static void hmm_exit(void)
 {
-    longjmp(_hmm_exit_env, -1);
+    if (_hmm_exit_ok) {
+        longjmp(_hmm_exit_env, -1);
+    }
+    exit(-1);
 }
 
 static int hmm_dummy_ctx_register(struct hmm_ctx *ctx)
 {
     int ret;
+
+    hmm_init_page_info();
 
     ret = ioctl(ctx->fd, HMM_DUMMY_EXPOSE_MM, NULL);
     if (ret) {
@@ -59,9 +81,12 @@ int hmm_ctx_init(struct hmm_ctx *ctx)
 {
     char pathname[32];
 
+    hmm_init_page_info();
+
     if (setjmp(_hmm_exit_env)) {
         return -1;
     }
+    _hmm_exit_ok = 1;
 
     snprintf(pathname, sizeof(pathname), "/dev/hmm_dummy_device%d%d", 0, 0);
     ctx->fd = open(pathname, O_RDWR, 0);
@@ -69,9 +94,6 @@ int hmm_ctx_init(struct hmm_ctx *ctx)
         fprintf(stderr, "could not open hmm dummy driver (%s)\n", pathname);
         return -1;
     }
-    ctx->page_size = sysconf(_SC_PAGE_SIZE);
-    ctx->page_shift = ffs(ctx->page_size) - 1;
-    ctx->page_mask = ~((unsigned long)(ctx->page_size - 1));
 
     return hmm_dummy_ctx_register(ctx);
 }
@@ -82,16 +104,24 @@ void hmm_ctx_fini(struct hmm_ctx *ctx)
     ctx->fd = -1;
 }
 
-struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
-                                       const char *name,
-                                       unsigned long npages)
+unsigned long hmm_buffer_nbytes(struct hmm_buffer *buffer)
+{
+    return buffer->npages << page_shift;
+}
+
+struct hmm_buffer *hmm_buffer_new_anon(const char *name, unsigned long nbytes)
 {
     struct hmm_buffer *buffer;
+    unsigned long npages;
 
-    if (!npages) {
-        fprintf(stderr, "(EE) %s(%s).npages -> %ld\n", __func__, name, npages);
+    hmm_init_page_info();
+
+    if (!nbytes) {
+        fprintf(stderr, "(EE) %s(%s).nbytes -> %ld\n", __func__, name, nbytes);
         hmm_exit();
     }
+
+    npages = ALIGN(nbytes, page_size) >> page_shift;
 
     buffer = malloc(sizeof(*buffer));
     if (buffer == NULL) {
@@ -102,14 +132,14 @@ struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
     buffer->fd = -1;
     buffer->name = name;
     buffer->npages = npages;
-    buffer->mirror = malloc(npages << ctx->page_shift);
+    buffer->mirror = malloc(npages << page_shift);
     if (buffer->mirror == NULL) {
         fprintf(stderr, "(EE) %s(%s).malloc(mirror)\n", __func__, name);
         free(buffer);
         hmm_exit();
     }
 
-    buffer->ptr = mmap(0, npages << ctx->page_shift,
+    buffer->ptr = mmap(0, npages << page_shift,
                        PROT_READ | PROT_WRITE,
                        MAP_PRIVATE | MAP_ANONYMOUS,
                        -1, 0);
@@ -122,17 +152,19 @@ struct hmm_buffer *hmm_buffer_new_anon(struct hmm_ctx *ctx,
     return buffer;
 }
 
-struct hmm_buffer *hmm_buffer_new_file(struct hmm_ctx *ctx,
-                                       const char *name,
-                                       int fd,
-                                       unsigned long npages)
+struct hmm_buffer *hmm_buffer_new_file(const char *name, int fd, unsigned long nbytes)
 {
     struct hmm_buffer *buffer;
+    unsigned long npages;
 
-    if (!npages) {
-        fprintf(stderr, "(EE) %s(%s).npages -> %ld\n", __func__, name, npages);
+    hmm_init_page_info();
+
+    if (!nbytes) {
+        fprintf(stderr, "(EE) %s(%s).nbytes -> %ld\n", __func__, name, nbytes);
         hmm_exit();
     }
+
+    npages = ALIGN(nbytes, page_size) >> page_shift;
 
     buffer = malloc(sizeof(*buffer));
     if (buffer == NULL) {
@@ -143,14 +175,14 @@ struct hmm_buffer *hmm_buffer_new_file(struct hmm_ctx *ctx,
     buffer->fd = fd;
     buffer->name = name;
     buffer->npages = npages;
-    buffer->mirror = malloc(npages << ctx->page_shift);
+    buffer->mirror = malloc(npages << page_shift);
     if (buffer->mirror == NULL) {
         fprintf(stderr, "(EE) %s(%s).malloc(mirror)\n", __func__, name);
         free(buffer);
         hmm_exit();
     }
 
-    buffer->ptr = mmap(0, npages << ctx->page_shift,
+    buffer->ptr = mmap(0, npages << page_shift,
                        PROT_READ | PROT_WRITE,
                        MAP_SHARED, fd, 0);
     if (buffer->ptr == MAP_FAILED) {
@@ -168,7 +200,7 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     int ret;
 
     read.address = (uintptr_t)buffer->ptr;
-    read.size = hmm_buffer_nbytes(ctx, buffer);
+    read.size = hmm_buffer_nbytes(buffer);
     read.ptr = (uintptr_t)buffer->mirror;
 
     do {
@@ -186,9 +218,9 @@ int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     return 0;
 }
 
-int hmm_buffer_mprotect(struct hmm_ctx *ctx, struct hmm_buffer *buffer, int prot)
+int hmm_buffer_mprotect(struct hmm_buffer *buffer, int prot)
 {
-    if (mprotect(buffer->ptr, hmm_buffer_nbytes(ctx, buffer), prot)) {
+    if (mprotect(buffer->ptr, hmm_buffer_nbytes(buffer), prot)) {
         return -errno;
     }
     return 0;
@@ -200,7 +232,7 @@ int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     int ret;
 
     write.address = (uintptr_t)buffer->ptr;
-    write.size = hmm_buffer_nbytes(ctx, buffer);
+    write.size = hmm_buffer_nbytes(buffer);
     write.ptr = (uintptr_t)buffer->mirror;
 
     do {
@@ -224,7 +256,7 @@ int hmm_buffer_mirror_migrate_to(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     int ret;
 
     migrate.address = (uintptr_t)buffer->ptr;
-    migrate.size = hmm_buffer_nbytes(ctx, buffer);
+    migrate.size = hmm_buffer_nbytes(buffer);
 
     ret = ioctl(ctx->fd, HMM_DUMMY_MIGRATE_TO, &migrate);
     if (ret) {
@@ -237,22 +269,25 @@ int hmm_buffer_mirror_migrate_to(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
     return 0;
 }
 
-void hmm_buffer_free(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
+void hmm_buffer_free(struct hmm_buffer *buffer)
 {
-    if (ctx == NULL || buffer == NULL) {
+    if (buffer == NULL) {
         return;
     }
 
-    munmap(buffer->ptr, buffer->npages << ctx->page_shift);
+    munmap(buffer->ptr, buffer->npages << page_shift);
     free(buffer->mirror);
     free(buffer);
 }
 
-int hmm_create_file(struct hmm_ctx *ctx, char *path, unsigned npages)
+int hmm_create_file(char *path, unsigned long size)
 {
-    unsigned long size = npages << ctx->page_shift;
     unsigned i;
     int fd;
+
+    hmm_init_page_info();
+
+    size = ALIGN(size, page_size);
 
     for (i = 0; i < 999; ++i) {
         sprintf(path, "/tmp/hmmtmp%d", i);

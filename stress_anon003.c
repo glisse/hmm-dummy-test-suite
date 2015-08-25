@@ -21,13 +21,14 @@
 #include "hmm_test_framework.h"
 #include <pthread.h>
 
-#define NTIMES 1024
-#define BUFFER_NPAGES 128
 #define MAX_SLEEP_BEFORE_MUNMAP_NS 32000
+#define BUFFER_SIZE (128 << 12)
+#define NTIMES 1024
 
 static struct hmm_buffer *_buffer = NULL;
 static unsigned long _c = -1;
 static int _ret = 0;
+
 
 void *access_buffer(void *p)
 {
@@ -39,7 +40,7 @@ void *access_buffer(void *p)
         int *ptr;
 
         while (!_buffer || _c != c);
-        size = hmm_buffer_nbytes(ctx, _buffer);
+        size = hmm_buffer_nbytes(_buffer);
         /* Write buffer from its mirror using dummy driver. */
         if (!hmm_buffer_mirror_read(ctx, _buffer)) {
             /* Check buffer value only if we care. */
@@ -75,18 +76,18 @@ static int hmm_test(struct hmm_ctx *ctx)
         unsigned long i, size;
         int *ptr;
 
-        HMM_BUFFER_NEW_ANON(buffer, BUFFER_NPAGES);
-        size = hmm_buffer_nbytes(ctx, buffer);
+        HMM_BUFFER_NEW_ANON(buffer, BUFFER_SIZE);
+        size = hmm_buffer_nbytes(buffer);
         /* Initialize write buffer a memory. */
         for (i = 0, ptr = buffer->ptr; i < size/sizeof(int); ++i) {
             ptr[i] = i;
         }
         _buffer = buffer;
         hmm_nanosleep(hmm_random() % MAX_SLEEP_BEFORE_MUNMAP_NS);
-        munmap(buffer->ptr, buffer->npages << ctx->page_shift);
+        munmap(buffer->ptr, hmm_buffer_nbytes(buffer));
         buffer->ptr = NULL;
         while (_buffer);
-        hmm_buffer_free(ctx, buffer);
+        hmm_buffer_free(buffer);
     }
 
     pthread_join(thread, NULL);

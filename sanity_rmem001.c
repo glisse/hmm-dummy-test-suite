@@ -18,8 +18,8 @@
  */
 #include "hmm_test_framework.h"
 
+#define BUFFER_SIZE (256 << 12)
 
-#define NPAGES  256
 
 static int hmm_test(struct hmm_ctx *ctx)
 {
@@ -27,8 +27,8 @@ static int hmm_test(struct hmm_ctx *ctx)
     unsigned long i, size;
     int *ptr, ret = 0;
 
-    HMM_BUFFER_NEW_ANON(buffer, NPAGES);
-    size = hmm_buffer_nbytes(ctx, buffer);
+    HMM_BUFFER_NEW_ANON(buffer, BUFFER_SIZE);
+    size = hmm_buffer_nbytes(buffer);
 
     /* Initialize buffer. */
     for (i = 0, ptr = buffer->ptr; i < size/sizeof(int); ++i) {
@@ -37,13 +37,13 @@ static int hmm_test(struct hmm_ctx *ctx)
 
     /* Migrate buffer to remote memory. */
     hmm_buffer_mirror_migrate_to(ctx, buffer);
-    if (buffer->nfaulted_dev_pages != NPAGES) {
-        fprintf(stderr, "(EE:%4d) migrated %ld pages out of %d\n",
-                __LINE__, (long)buffer->nfaulted_dev_pages, NPAGES);
+    if (buffer->nfaulted_dev_pages != buffer->npages) {
+        fprintf(stderr, "(EE:%4d) migrated %ld pages out of %ld\n",
+                __LINE__, (long)buffer->nfaulted_dev_pages, buffer->npages);
         ret = -1;
     }
 
-    hmm_buffer_free(ctx, buffer);
+    hmm_buffer_free(buffer);
 
     return ret;
 }

@@ -19,8 +19,8 @@
  */
 #include "hmm_test_framework.h"
 
+#define BUFFER_SIZE (256 << 12)
 
-#define NPAGES  256
 
 static int hmm_test(struct hmm_ctx *ctx)
 {
@@ -30,13 +30,13 @@ static int hmm_test(struct hmm_ctx *ctx)
     int *ptr, ret = 0;
     int fd;
 
-    fd = hmm_create_file(ctx, path, NPAGES);
+    fd = hmm_create_file(path, BUFFER_SIZE);
     if (fd < 0) {
         return -1;
     }
 
-    HMM_BUFFER_NEW_FILE(buffer, fd, NPAGES);
-    size = hmm_buffer_nbytes(ctx, buffer);
+    HMM_BUFFER_NEW_FILE(buffer, fd, BUFFER_SIZE);
+    size = hmm_buffer_nbytes(buffer);
 
     /* Initialize buffer. */
     for (i = 0, ptr = buffer->ptr; i < size/sizeof(int); ++i) {
