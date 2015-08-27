@@ -152,6 +152,49 @@ struct hmm_buffer *hmm_buffer_new_anon(const char *name, unsigned long nbytes)
     return buffer;
 }
 
+struct hmm_buffer *hmm_buffer_new_share(const char *name, unsigned long nbytes)
+{
+    struct hmm_buffer *buffer;
+    unsigned long npages;
+
+    hmm_init_page_info();
+
+    if (!nbytes) {
+        fprintf(stderr, "(EE) %s(%s).nbytes -> %ld\n", __func__, name, nbytes);
+        hmm_exit();
+    }
+
+    npages = ALIGN(nbytes, page_size) >> page_shift;
+
+    buffer = malloc(sizeof(*buffer));
+    if (buffer == NULL) {
+        fprintf(stderr, "(EE) %s(%s).malloc(struct)\n", __func__, name);
+        hmm_exit();
+    }
+
+    buffer->fd = -1;
+    buffer->name = name;
+    buffer->npages = npages;
+    buffer->mirror = malloc(npages << page_shift);
+    if (buffer->mirror == NULL) {
+        fprintf(stderr, "(EE) %s(%s).malloc(mirror)\n", __func__, name);
+        free(buffer);
+        hmm_exit();
+    }
+
+    buffer->ptr = mmap(0, npages << page_shift,
+                       PROT_READ | PROT_WRITE,
+                       MAP_SHARED | MAP_ANONYMOUS,
+                       -1, 0);
+    if (buffer->ptr == MAP_FAILED) {
+        fprintf(stderr, "(EE) %s(%s).mmap(%ld)\n", __func__, name, npages);
+        free(buffer);
+        hmm_exit();
+    }
+
+    return buffer;
+}
+
 struct hmm_buffer *hmm_buffer_new_file(const char *name, int fd, unsigned long nbytes)
 {
     struct hmm_buffer *buffer;
