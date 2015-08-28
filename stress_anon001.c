@@ -52,7 +52,7 @@ retry:
         }
 
         /* Read buffer to its mirror using dummy driver. */
-        hmm_buffer_mirror_read(ctx, buffers[j]);
+        hmm_buffer_mirror_read(ctx, buffers[j], -1UL, 0);
 
         /* Check mirror value. */
         for (i = 0, ptr = buffers[j]->mirror; i < size/sizeof(int); ++i) {
@@ -73,7 +73,7 @@ retry:
 
         printf("\r(..) Re-checking buffers[%ld]", j);
         /* Read buffer to its mirror using dummy driver. */
-        hmm_buffer_mirror_read(ctx, buffers[j]);
+        hmm_buffer_mirror_read(ctx, buffers[j], -1UL, 0);
 
         nrefaults += buffers[j]->nfaulted_sys_pages;
 

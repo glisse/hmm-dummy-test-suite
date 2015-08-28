@@ -39,7 +39,7 @@ static int hmm_test(struct hmm_ctx *ctx)
         }
 
         /* Read buffer to its mirror using dummy driver. */
-        hmm_buffer_mirror_read(ctx, buffer);
+        hmm_buffer_mirror_read(ctx, buffer, -1UL, 0);
 
         /* Check mirror value. */
         for (i = 0, ptr = buffer->mirror; i < size/sizeof(int); ++i) {

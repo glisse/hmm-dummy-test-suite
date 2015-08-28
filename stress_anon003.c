@@ -42,7 +42,7 @@ void *access_buffer(void *p)
         while (!_buffer || _c != c);
         size = hmm_buffer_nbytes(_buffer);
         /* Write buffer from its mirror using dummy driver. */
-        if (!hmm_buffer_mirror_read(ctx, _buffer)) {
+        if (!hmm_buffer_mirror_read(ctx, _buffer, -1UL, 0)) {
             /* Check buffer value only if we care. */
             for (i = 0, ptr = _buffer->mirror; i < size/sizeof(int); ++i) {
                 if (ptr[i] != i) {

@@ -47,7 +47,7 @@ static int hmm_test(struct hmm_ctx *ctx)
     }
 
     /* Try to read, we expect an error so ignore it. */
-    hmm_buffer_mirror_read(ctx, buffer);
+    hmm_buffer_mirror_read(ctx, buffer, -1UL, 0);
     /* Check buffer value. */
     for (i = 0, ptr = buffer->mirror; i < size/sizeof(int); ++i) {
         if (ptr[i]) {
@@ -58,7 +58,7 @@ static int hmm_test(struct hmm_ctx *ctx)
     /* Write buffer from its mirror using dummy driver. Ignore error as we
      * expect it to fail.
      */
-    hmm_buffer_mirror_write(ctx, buffer);
+    hmm_buffer_mirror_write(ctx, buffer, -1UL, 0);
     /* Unprotect buffer before checking value. */
     if (hmm_buffer_mprotect(buffer, PROT_READ)) {
         return -1;

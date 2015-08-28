@@ -66,8 +66,14 @@ struct hmm_buffer {
 struct hmm_buffer *hmm_buffer_new_anon(const char *name, unsigned long nbytes);
 struct hmm_buffer *hmm_buffer_new_share(const char *name, unsigned long nbytes);
 struct hmm_buffer *hmm_buffer_new_file(const char *name, int fd, unsigned long bytes);
-int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
-int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
+int hmm_buffer_mirror_read(struct hmm_ctx *ctx,
+                           struct hmm_buffer *buffer,
+                           unsigned long size,
+                           unsigned long offset);
+int hmm_buffer_mirror_write(struct hmm_ctx *ctx,
+                            struct hmm_buffer *buffer,
+                            unsigned long size,
+                            unsigned long offset);
 int hmm_buffer_mirror_migrate_to(struct hmm_ctx *ctx, struct hmm_buffer *buffer);
 int hmm_buffer_mprotect(struct hmm_buffer *buffer, int prot);
 void hmm_buffer_free(struct hmm_buffer *buffer);

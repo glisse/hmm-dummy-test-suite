@@ -37,7 +37,7 @@ static int hmm_test(struct hmm_ctx *ctx)
     }
 
     /* Read buffer to its mirror using dummy driver. */
-    if (hmm_buffer_mirror_read(ctx, buffer)) {
+    if (hmm_buffer_mirror_read(ctx, buffer, -1UL, 0)) {
         return -1;
     }
 

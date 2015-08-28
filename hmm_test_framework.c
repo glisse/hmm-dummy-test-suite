@@ -237,14 +237,17 @@ struct hmm_buffer *hmm_buffer_new_file(const char *name, int fd, unsigned long n
     return buffer;
 }
 
-int hmm_buffer_mirror_read(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
+int hmm_buffer_mirror_read(struct hmm_ctx *ctx,
+                           struct hmm_buffer *buffer,
+                           unsigned long size,
+                           unsigned long offset)
 {
     struct hmm_dummy_read read;
     int ret;
 
     read.address = (uintptr_t)buffer->ptr;
-    read.size = hmm_buffer_nbytes(buffer);
-    read.ptr = (uintptr_t)buffer->mirror;
+    read.size = size == -1UL ? hmm_buffer_nbytes(buffer) : size;
+    read.ptr = (uintptr_t)buffer->mirror + offset;
 
     do {
         ret = ioctl(ctx->fd, HMM_DUMMY_READ, &read);
@@ -269,7 +272,10 @@ int hmm_buffer_mprotect(struct hmm_buffer *buffer, int prot)
     return 0;
 }
 
-int hmm_buffer_mirror_write(struct hmm_ctx *ctx, struct hmm_buffer *buffer)
+int hmm_buffer_mirror_write(struct hmm_ctx *ctx,
+                            struct hmm_buffer *buffer,
+                            unsigned long size,
+                            unsigned long offset)
 {
     struct hmm_dummy_write write;
     int ret;
